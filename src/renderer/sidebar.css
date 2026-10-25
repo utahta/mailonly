@@ -1,0 +1,107 @@
+:root {
+  color-scheme: light dark;
+  --bg: #f3f4f6;
+  --fg: #374151;
+  --muted: #6b7280;
+  --ring: #111827;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1f2937;
+    --fg: #e5e7eb;
+    --muted: #9ca3af;
+    --ring: #f9fafb;
+  }
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px system-ui, sans-serif;
+  user-select: none;
+}
+
+/* The width must match SIDEBAR_WIDTH in src/main/accounts.ts. */
+nav {
+  box-sizing: border-box;
+  width: 68px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 0;
+  overflow-y: auto;
+}
+
+ul {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+button {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font: inherit;
+  cursor: pointer;
+}
+
+.account {
+  position: relative;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  opacity: 0.55;
+}
+
+.account:hover,
+.account[aria-current="true"] {
+  opacity: 1;
+}
+
+.account[aria-current="true"] {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  box-shadow: 0 0 0 2px var(--bg);
+  background: #dc2626;
+  color: #fff;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+#add {
+  border: 1px dashed var(--muted);
+  background: none;
+  color: var(--muted);
+  font-size: 20px;
+}
+
+main {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+[hidden] {
+  display: none;
+}
