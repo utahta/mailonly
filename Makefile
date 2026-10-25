@@ -2,7 +2,7 @@
 
 node_modules: package-lock.json
 	npm ci
-	@touch node_modules
+	@node -e "fs.utimesSync('node_modules', new Date(), new Date())"
 
 build: node_modules
 	npm run build
@@ -17,4 +17,4 @@ typecheck: node_modules
 	npm run typecheck
 
 clean:
-	rm -rf dist
+	node -e "fs.rmSync('dist', { recursive: true, force: true })"
