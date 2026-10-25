@@ -19,7 +19,7 @@ mailonly is not affiliated with, endorsed by, or sponsored by Google. Gmail is a
 
 ## Development
 
-Requires Node.js 24. Only macOS has been tested.
+Requires Node.js 24.
 
 ```sh
 make start      # build and run
