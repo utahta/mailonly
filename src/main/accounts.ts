@@ -30,7 +30,9 @@ export class Accounts {
     this.#onChange = onChange;
     for (const account of config.accounts) this.#open(account);
     this.#show(config.selected ?? config.accounts[0]?.id);
-    win.on('resize', () => this.#layout());
+    // Not the window's resize event: on Windows, showing the auto-hidden menu
+    // bar shrinks the content view without resizing the window.
+    win.contentView.on('bounds-changed', () => this.#layout());
   }
 
   get list(): readonly Account[] {
@@ -104,7 +106,7 @@ export class Accounts {
   }
 
   #layout(): void {
-    const { width, height } = this.#win.getContentBounds();
+    const { width, height } = this.#win.contentView.getBounds();
     const bounds = { x: SIDEBAR_WIDTH, y: 0, width: Math.max(0, width - SIDEBAR_WIDTH), height };
     for (const view of this.#views.values()) view.setBounds(bounds);
   }
