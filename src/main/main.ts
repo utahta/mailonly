@@ -92,6 +92,8 @@ function start(): void {
       buttons: ['Remove', 'Cancel'],
       defaultId: 1,
       cancelId: 1,
+      // Windows would otherwise show Remove as a command link.
+      noLink: true,
       message: `Remove ${account.label || 'this account'}?`,
       detail: 'Its sign-in data is deleted from this app. Your Google account is not affected.',
     });
