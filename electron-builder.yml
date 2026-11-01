@@ -1,5 +1,5 @@
-appId: com.utahta.mailonly
-productName: mailonly
+appId: com.utahta.ouchimail
+productName: ouchimail
 directories:
   # dist/ holds the compiled sources.
   output: release

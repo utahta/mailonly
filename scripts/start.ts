@@ -13,7 +13,7 @@ const installed = require('electron') as string;
 const electronDir = path.dirname(require.resolve('electron/package.json'));
 const { version } = require('electron/package.json') as { version: string };
 const binary = path.relative(path.join(electronDir, 'dist'), installed);
-const dir = path.join(electronDir, '..', '.cache', 'mailonly-electron');
+const dir = path.join(electronDir, '..', '.cache', 'ouchimail-electron');
 const stamp = path.join(dir, 'version');
 
 if (!fs.existsSync(stamp) || fs.readFileSync(stamp, 'utf8') !== version) {

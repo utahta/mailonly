@@ -2,7 +2,7 @@ import type { AccountState, SidebarApi, SidebarState } from '../shared/api.ts';
 
 declare global {
   interface Window {
-    mailonly: SidebarApi;
+    ouchimail: SidebarApi;
   }
 }
 
@@ -25,10 +25,10 @@ function item(account: AccountState, index: number, selected: boolean): HTMLLIEl
     badge.textContent = account.unread > 99 ? '99+' : String(account.unread);
     button.append(badge);
   }
-  button.addEventListener('click', () => window.mailonly.select(account.id));
+  button.addEventListener('click', () => window.ouchimail.select(account.id));
   button.addEventListener('contextmenu', (event) => {
     event.preventDefault();
-    window.mailonly.showAccountMenu(account.id);
+    window.ouchimail.showAccountMenu(account.id);
   });
 
   const li = document.createElement('li');
@@ -41,5 +41,5 @@ function render(state: SidebarState): void {
   list.replaceChildren(...state.accounts.map((account, i) => item(account, i, account.id === state.selected)));
 }
 
-document.querySelector('#add')!.addEventListener('click', () => window.mailonly.add());
-window.mailonly.onState(render);
+document.querySelector('#add')!.addEventListener('click', () => window.ouchimail.add());
+window.ouchimail.onState(render);

@@ -85,20 +85,20 @@ jobs:
       # or a version other than the tag would otherwise ship unnoticed.
       - name: Verify
         run: |
-          ditto -x -k "release/mailonly-${TAG#v}-arm64-mac.zip" verify
-          codesign --verify --deep --strict --verbose=2 verify/mailonly.app
+          ditto -x -k "release/ouchimail-${TAG#v}-arm64-mac.zip" verify
+          codesign --verify --deep --strict --verbose=2 verify/ouchimail.app
           BUILT="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
-            verify/mailonly.app/Contents/Info.plist)"
+            verify/ouchimail.app/Contents/Info.plist)"
           if [ "$BUILT" != "${TAG#v}" ]; then
             echo "bundle says $BUILT, tag says ${TAG#v}" >&2
             exit 1
           fi
-          node scripts/check-fuses.ts verify/mailonly.app
+          node scripts/check-fuses.ts verify/ouchimail.app
 
       - name: Upload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$TAG" "release/mailonly-${TAG#v}-arm64-mac.zip" --clobber
+        run: gh release upload "$TAG" "release/ouchimail-${TAG#v}-arm64-mac.zip" --clobber
 
   windows:
     needs: tagpr
@@ -123,13 +123,13 @@ jobs:
       - run: npm run build
       - run: npm run dist
       - name: Verify
-        run: node scripts/check-fuses.ts release/win-unpacked/mailonly.exe
+        run: node scripts/check-fuses.ts release/win-unpacked/ouchimail.exe
       # The installer is named after the version in package.json, so a version
       # other than the tag fails here.
       - name: Upload
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$TAG" "release/mailonly-${TAG#v}-x64-setup.exe" --clobber
+        run: gh release upload "$TAG" "release/ouchimail-${TAG#v}-x64-setup.exe" --clobber
 
   # Publishes only after both builds are attached, so a failed build leaves the
   # release as a draft.
@@ -179,24 +179,24 @@ jobs:
           # Taken from the published tag, so that re-running an older workflow
           # cannot pair the newest version with an older cask definition.
           gh api \
-            "repos/${GITHUB_REPOSITORY}/contents/packaging/homebrew/mailonly.rb.template?ref=v${VERSION}" \
+            "repos/${GITHUB_REPOSITORY}/contents/packaging/homebrew/ouchimail.rb.template?ref=v${VERSION}" \
             --jq .content | base64 -d > template.rb
 
           git clone -q \
             "https://x-access-token:${TAP_TOKEN}@github.com/utahta/homebrew-tap.git" tap
           mkdir -p tap/Casks
           sed -e "s/__VERSION__/${VERSION}/g" -e "s/__SHA256__/${SHA256}/g" \
-            template.rb > tap/Casks/mailonly.rb
+            template.rb > tap/Casks/ouchimail.rb
 
           cd tap
           # Staged first: the first release adds the cask as an untracked file,
           # which a plain git diff does not report.
-          git add Casks/mailonly.rb
+          git add Casks/ouchimail.rb
           if git diff --cached --quiet; then
             echo "tap already at ${VERSION}"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -q -m "mailonly ${VERSION}"
+          git commit -q -m "ouchimail ${VERSION}"
           git push -q

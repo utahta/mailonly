@@ -12,4 +12,4 @@ const api: SidebarApi = {
   showAccountMenu: (id) => ipcRenderer.send('account-menu', id),
 };
 
-contextBridge.exposeInMainWorld('mailonly', api);
+contextBridge.exposeInMainWorld('ouchimail', api);
