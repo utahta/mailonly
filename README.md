@@ -7,6 +7,7 @@ mailonly is not affiliated with, endorsed by, or sponsored by Google. Gmail is a
 ## Features
 
 - Each account has a button in the sidebar with its unread inbox count. Switch accounts with a click or <kbd>Cmd/Ctrl</kbd>+<kbd>1</kbd> to <kbd>9</kbd>.
+- On macOS, closing the window keeps mailonly running in the Dock, with the total unread count on its icon. Quit with <kbd>Cmd</kbd>+<kbd>Q</kbd>.
 - Each account runs in its own session, with separate cookies and storage.
 - Links in messages open in your default browser.
 - mailonly denies every permission request from Gmail, such as notifications or the camera.

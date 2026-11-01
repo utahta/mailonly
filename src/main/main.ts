@@ -61,7 +61,11 @@ function start(): void {
     webPreferences: { preload: path.join(import.meta.dirname, '../preload/sidebar.cjs') },
   });
   const accounts = new Accounts(win, config, () => {
-    win.webContents.send('state', accounts.state());
+    const state = accounts.state();
+    win.webContents.send('state', state);
+    // Keeps the total visible on the Dock icon while the window is hidden.
+    // Windows draws it over the taskbar button.
+    app.setBadgeCount(state.accounts.reduce((sum, account) => sum + (account.unread ?? 0), 0));
     setMenu();
   });
 
@@ -70,11 +74,16 @@ function start(): void {
       (account, i): MenuItemConstructorOptions => ({
         label: account.label || 'New Account',
         accelerator: `CmdOrCtrl+${i + 1}`,
-        click: () => accounts.select(account.id),
+        click: () => {
+          accounts.select(account.id);
+          win.show();
+        },
       }),
     );
     const template: MenuItemConstructorOptions[] = [
-      isMac ? { role: 'appMenu' } : { role: 'fileMenu' },
+      ...(isMac ? [{ role: 'appMenu' } as const] : []),
+      // On macOS this holds Close Window (Cmd+W); elsewhere it holds Quit.
+      { role: 'fileMenu' },
       { role: 'editMenu' },
       {
         label: 'View',
@@ -89,7 +98,17 @@ function start(): void {
       },
       {
         label: 'Accounts',
-        submenu: [...switchItems, { type: 'separator' }, { label: 'Add Account', click: () => accounts.add() }],
+        submenu: [
+          ...switchItems,
+          { type: 'separator' },
+          {
+            label: 'Add Account',
+            click: () => {
+              accounts.add();
+              win.show();
+            },
+          },
+        ],
       },
       { role: 'windowMenu' },
     ];
@@ -127,12 +146,38 @@ function start(): void {
   win.webContents.on('did-finish-load', () => win.webContents.send('state', accounts.state()));
   // Dropping a file or link on the sidebar would otherwise navigate it away.
   win.webContents.on('will-navigate', (event) => event.preventDefault());
-  win.on('close', () => {
+  // On macOS, closing the window only hides it, so reopening it does not
+  // reload Gmail.
+  let quitting = false;
+  app.on('before-quit', () => {
+    quitting = true;
+  });
+  win.on('close', (event) => {
+    if (isMac && !quitting) {
+      event.preventDefault();
+      hide();
+      return;
+    }
     config.bounds = win.getNormalBounds();
     saveConfig(config);
   });
+  // Hiding a full-screen window leaves an empty black Space behind
+  // (https://github.com/electron/electron/issues/20263).
+  function hide(): void {
+    if (win.isFullScreen()) {
+      win.once('leave-full-screen', () => win.hide());
+      win.setFullScreen(false);
+    } else {
+      win.hide();
+    }
+  }
+  // A Dock click on a visible window would raise it over Gmail's pop-outs.
+  app.on('activate', () => {
+    if (!win.isVisible()) win.show();
+  });
   app.on('second-instance', () => {
     if (win.isMinimized()) win.restore();
+    win.show();
     win.focus();
   });
 
