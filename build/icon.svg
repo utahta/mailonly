@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- macOS draws app icons with their own margin: the artwork is 824x824 on
+       the 1024 canvas, corner radius 185. Filling the whole canvas leaves
+       square corners that stand out in the Dock. -->
+  <defs>
+    <clipPath id="frame">
+      <rect x="100" y="100" width="824" height="824" rx="185"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#frame)">
+    <rect x="100" y="100" width="824" height="824" fill="#0C1657"/>
+    <!-- Places the bottom of the 1024 drawing grid, where the cat sits, on
+         the bottom of the frame. -->
+    <g transform="matrix(0.90125 0 0 0.90125 50.56 1.12)">
+      <rect x="252" y="220" width="520" height="350" rx="44" fill="#FBF8F1"/>
+      <path d="M 280 250 L 512 425 L 744 250" fill="none" stroke="#0C1657" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="752" cy="240" r="92" fill="#0C1657"/>
+      <circle cx="752" cy="240" r="68" fill="#E0A723"/>
+      <path d="M 233 1024 C 233 966, 240 914, 255 886 C 265 866, 265 860, 274 848 C 266 800, 264 700, 272 664 C 276 638, 283 623, 295 620 C 317.92 614.27, 350.02 654.67, 418 748 C 460 732, 563 732, 605 748 C 672.98 654.67, 705.08 614.27, 728 620 C 740 623, 747 638, 751 664 C 759 700, 757 800, 749 848 C 758 860, 758 866, 768 886 C 783 914, 790 966, 790 1024 Z" fill="#FBF8F1"/>
+    </g>
+  </g>
+</svg>
