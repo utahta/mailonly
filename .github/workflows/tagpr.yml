@@ -1,0 +1,202 @@
+name: tagpr
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Unlike the default shell, this one sets pipefail, so a failed command inside
+# a pipe fails the step.
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  # Maintains the "next release" pull request. Merging it tags the commit,
+  # which is what the jobs below wait for.
+  tagpr:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tagpr.outputs.tag }}
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The postVersionCommand in .tagpr runs npm.
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - id: tagpr
+        uses: Songmu/tagpr@e1250d6c84e4425db82b5e90549d62dfe23e9ebe # v1.21.4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # tagpr proposes a patch release unless the release pull request has
+      # tagpr:minor or tagpr:major. Releases here default to minor, so label
+      # the pull request and run this workflow again to update its version.
+      - name: Default to a minor release
+        if: steps.tagpr.outputs.tag == '' && steps.tagpr.outputs.pull_request != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PULL_REQUEST: ${{ steps.tagpr.outputs.pull_request }}
+        run: |
+          PR="$(jq -r .number <<< "$PULL_REQUEST")"
+          LABELS="$(gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/labels" --jq '.[].name')"
+          if grep -qE '^tagpr[:/](minor|major)$' <<< "$LABELS"; then
+            exit 0
+          fi
+          # Unlike gh pr edit, this endpoint creates the label if it is missing.
+          gh api "repos/${GITHUB_REPOSITORY}/issues/${PR}/labels" \
+            -f 'labels[]=tagpr:minor' > /dev/null
+          # A run started with GITHUB_TOKEN only happens for workflow_dispatch.
+          gh workflow run tagpr.yml --ref "$GITHUB_REF_NAME"
+
+  # The build jobs only run on the push that carries the tag. tagpr leaves the
+  # release as a draft, so the assets are attached before anyone sees it.
+  # npm ci, test and dist run third-party code, so the write token is given
+  # only to the Upload step and is not left in .git/config.
+  mac:
+    needs: tagpr
+    if: needs.tagpr.outputs.tag != ''
+    runs-on: macos-26
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.tagpr.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.tagpr.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run dist
+
+      # Checks the zip as users will unpack it: a signature broken by zipping
+      # or a version other than the tag would otherwise ship unnoticed.
+      - name: Verify
+        run: |
+          ditto -x -k "release/mailonly-${TAG#v}-arm64-mac.zip" verify
+          codesign --verify --deep --strict --verbose=2 verify/mailonly.app
+          BUILT="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
+            verify/mailonly.app/Contents/Info.plist)"
+          if [ "$BUILT" != "${TAG#v}" ]; then
+            echo "bundle says $BUILT, tag says ${TAG#v}" >&2
+            exit 1
+          fi
+          node scripts/check-fuses.ts verify/mailonly.app
+
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$TAG" "release/mailonly-${TAG#v}-arm64-mac.zip" --clobber
+
+  windows:
+    needs: tagpr
+    if: needs.tagpr.outputs.tag != ''
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ needs.tagpr.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.tagpr.outputs.tag }}
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run dist
+      - name: Verify
+        run: node scripts/check-fuses.ts release/win-unpacked/mailonly.exe
+      # The installer is named after the version in package.json, so a version
+      # other than the tag fails here.
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$TAG" "release/mailonly-${TAG#v}-x64-setup.exe" --clobber
+
+  # Publishes only after both builds are attached, so a failed build leaves the
+  # release as a draft.
+  publish:
+    needs: [tagpr, mac, windows]
+    if: needs.tagpr.outputs.tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # This job checks nothing out, so gh cannot find the repository from a
+      # git remote.
+      GH_REPO: ${{ github.repository }}
+      TAG: ${{ needs.tagpr.outputs.tag }}
+    steps:
+      - name: Publish the release
+        run: gh release edit "$TAG" --draft=false
+
+      # The latest pointer and the cask both name the newest release, not
+      # whichever tag started this run.
+      - name: Mark the newest release as the latest
+        id: newest
+        run: |
+          VERSION="$(gh release list --limit 100 \
+            --json tagName,isDraft --jq '.[] | select(.isDraft | not) | .tagName' \
+            | sed 's/^v//' | sort -V | tail -1)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          gh release edit "v${VERSION}" --latest
+
+      - name: Update the Homebrew tap
+        env:
+          # GITHUB_TOKEN cannot push to the tap repository. Without this
+          # secret the release is already out and only the tap lags, so the
+          # step skips instead of failing.
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.newest.outputs.version }}
+        run: |
+          if [ -z "$TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN is unset; leaving the tap alone."
+            exit 0
+          fi
+
+          gh release download "v${VERSION}" --pattern '*-mac.zip' --dir asset
+          SHA256="$(sha256sum asset/*-mac.zip | awk '{print $1}')"
+
+          # Taken from the published tag, so that re-running an older workflow
+          # cannot pair the newest version with an older cask definition.
+          gh api \
+            "repos/${GITHUB_REPOSITORY}/contents/packaging/homebrew/mailonly.rb.template?ref=v${VERSION}" \
+            --jq .content | base64 -d > template.rb
+
+          git clone -q \
+            "https://x-access-token:${TAP_TOKEN}@github.com/utahta/homebrew-tap.git" tap
+          mkdir -p tap/Casks
+          sed -e "s/__VERSION__/${VERSION}/g" -e "s/__SHA256__/${SHA256}/g" \
+            template.rb > tap/Casks/mailonly.rb
+
+          cd tap
+          # Staged first: the first release adds the cask as an untracked file,
+          # which a plain git diff does not report.
+          git add Casks/mailonly.rb
+          if git diff --cached --quiet; then
+            echo "tap already at ${VERSION}"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -q -m "mailonly ${VERSION}"
+          git push -q

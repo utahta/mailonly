@@ -1,0 +1,6 @@
+[tagpr]
+	vPrefix = true
+	releaseBranch = main
+	release = draft
+	versionFile = package.json
+	postVersionCommand = npm version "${TAGPR_NEXT_VERSION#v}" --no-git-tag-version --allow-same-version

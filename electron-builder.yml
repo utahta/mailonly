@@ -26,3 +26,6 @@ win:
   target:
     - target: nsis
       arch: x64
+nsis:
+  # The default name has spaces, which make release download URLs awkward.
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
