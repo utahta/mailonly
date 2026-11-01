@@ -1,0 +1,28 @@
+appId: com.utahta.mailonly
+productName: mailonly
+directories:
+  # dist/ holds the compiled sources.
+  output: release
+files:
+  - dist/**/*
+  - package.json
+electronFuses:
+  runAsNode: false
+  enableCookieEncryption: true
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+mac:
+  target:
+    - target: zip
+      arch: arm64
+  category: public.app-category.productivity
+  identity: "-"
+  sign: ./scripts/sign.ts
+  # Ad-hoc signatures cannot carry a timestamp.
+  timestamp: none
+win:
+  target:
+    - target: nsis
+      arch: x64

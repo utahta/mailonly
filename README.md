@@ -26,7 +26,8 @@ make start      # build and run
 make test       # unit tests
 make typecheck  # type-check sources and tests
 make build      # compile to dist/
-make clean      # remove dist/
+make dist       # package for the current OS into release/
+make clean      # remove dist/ and release/
 ```
 
 `make start` runs the app on a copy of Electron with cookie encryption turned on, and keeps its data in `mailonly-dev`, apart from the installed app. Don't run the app with `npx electron .`, because Electron without cookie encryption can't read the encrypted cookies.

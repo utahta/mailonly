@@ -1,4 +1,4 @@
-.PHONY: build start test typecheck clean
+.PHONY: build start dist test typecheck clean
 
 node_modules: package-lock.json
 	npm ci
@@ -10,6 +10,13 @@ build: node_modules
 start: build
 	npm start
 
+# Cleans first so files deleted from src/ are not packaged. The steps are in
+# the recipe because make -j runs prerequisites in parallel.
+dist:
+	$(MAKE) clean
+	$(MAKE) build
+	npm run dist
+
 test: node_modules
 	npm test
 
@@ -17,4 +24,4 @@ typecheck: node_modules
 	npm run typecheck
 
 clean:
-	node -e "fs.rmSync('dist', { recursive: true, force: true })"
+	node -e "fs.rmSync('dist', { recursive: true, force: true }); fs.rmSync('release', { recursive: true, force: true })"
