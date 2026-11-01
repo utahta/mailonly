@@ -12,16 +12,15 @@ cask "mailonly" do
     strategy :github_latest
   end
 
-  depends_on macos: ">= :ventura"
   depends_on arch: :arm64
+  depends_on macos: :ventura
 
   app "mailonly.app"
 
   # mailonly is not notarized, so macOS refuses to open the quarantined
   # download, claiming the app is damaged.
-  postflight do
-    system_command "/usr/bin/xattr",
-                   args: ["-dr", "com.apple.quarantine", "#{appdir}/mailonly.app"]
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "{{appdir}}/mailonly.app"]
   end
 
   zap trash: [
