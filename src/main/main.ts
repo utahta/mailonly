@@ -12,6 +12,16 @@ import path from 'node:path';
 import { Accounts } from './accounts.ts';
 import { loadConfig, saveConfig, type Account, type Bounds } from './config.ts';
 
+// A debugging port or pipe lets any local process read every account's pages
+// and cookies. Exiting here comes before Electron opens it (Electron 44.10.1,
+// macOS).
+if (
+  app.isPackaged &&
+  (app.commandLine.hasSwitch('remote-debugging-port') || app.commandLine.hasSwitch('remote-debugging-pipe'))
+) {
+  app.exit(1);
+}
+
 // Drop the app name but keep the Electron token: with a plain Chrome UA,
 // Google's sign-in rejected Electron (Electron 44.9.0, macOS).
 app.userAgentFallback = app.userAgentFallback.replace(` ${app.getName()}/${app.getVersion()}`, '');
