@@ -14,7 +14,9 @@ export type Bounds = { x: number; y: number; width: number; height: number };
 export type Config = {
   accounts: Account[];
   selected?: string;
+  // The size before maximizing, so unmaximizing still has somewhere to go.
   bounds?: Bounds;
+  maximized?: boolean;
 };
 
 function configPath(): string {

@@ -60,6 +60,16 @@ function start(): void {
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(import.meta.dirname, '../preload/sidebar.cjs') },
   });
+  if (config.maximized) win.maximize();
+  // isMaximized() is false while the window is minimized, so the state is
+  // tracked here instead of being read when the window closes.
+  let maximized = config.maximized === true;
+  win.on('maximize', () => {
+    maximized = true;
+  });
+  win.on('unmaximize', () => {
+    maximized = false;
+  });
   const accounts = new Accounts(win, config, () => {
     const state = accounts.state();
     win.webContents.send('state', state);
@@ -159,6 +169,7 @@ function start(): void {
       return;
     }
     config.bounds = win.getNormalBounds();
+    config.maximized = maximized;
     saveConfig(config);
   });
   // Hiding a full-screen window leaves an empty black Space behind
